@@ -1,7 +1,9 @@
 version: 2
- 
-sources: 
-  - name: "{{ var('schema_source') }}"
+
+sources:
+  - name: marketing_source
+    database: AIRBNB
+    schema: "{{ var('schema_source') }}"
     tables:
       - name: TIKTOK_ADS_RAW_DATA
-        description: "This table contains the raw data from TikTok Ads. It includes all the fields as they are received from the TikTok Ads API, without any transformations or cleaning applied. This is the source of truth for all TikTok Ads data in our analytics environment."
+        description: "Raw data table from TikTok Ads API."
