@@ -1,0 +1,6 @@
+### It is mandatory to grand usage to yourself to read and write on database even if you have admin rights.
+
+- GRANT USAGE ON DATABASE AIRBNB TO ROLE TRANSFORM;
+- GRANT USAGE ON SCHEMA AIRBNB.RAW_CAMPAIGN_DATA TO ROLE TRANSFORM;
+- RANT SELECT ON ALL TABLES IN SCHEMA AIRBNB.RAW_CAMPAIGN_DATA TO ROLE TRANSFORM;
+

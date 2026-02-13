@@ -1,0 +1,7 @@
+version: 2
+ 
+sources: 
+  - name: "{{ var('schema_source') }}"
+    tables:
+      - name: DV360_ADS_RAW_DATA
+        description: "This table contains the raw data from Display Video 360 Ads. It includes all the fields as they are received from the Display Video 360 Ads API, without any transformations or cleaning applied. This is the source of truth for all Display Video 360 Ads data in our analytics environment."
