@@ -1,0 +1,53 @@
+unit_tests:
+  - name: test_union_platforms
+    model: fct_social_ads
+
+    given:
+      - input: ref('int_facebook_ads')
+        rows:
+          - ad_id: 1
+            platform: facebook
+            spend: 100
+
+      - input: ref('int_tiktok_ads')
+        rows:
+          - ad_id: 2
+            platform: tiktok
+            spend: 200
+
+    expect:
+      rows:
+      - platform_id: 1
+        platform: facebook
+        campaign_name: Lead Generation
+        adset_name: Retargeting 30d
+        date: '2024-06-27'
+        country: ES
+        device: Mobile
+        impressions: 16725
+        clicks: 910
+        conversions: 71
+        spend: 978
+        revenue: 6660.67
+        ctr_percent: 5.418300
+        cpc: 1.05274725
+        cpa: 13.49295775
+        roas: 6.95268267
+
+      - platform_id: 2
+        platform: tiktok
+        campaign_name: Lead Generation
+        adset_name: Retargeting 30d
+        date: '2024-06-27'
+        country: ES
+        device: Mobile
+        impressions: 16725
+        clicks: 910
+        conversions: 71
+        spend: 978
+        revenue: 300.0
+        ctr_percent: 10
+        cpc: 10
+        cpa: 50
+        roas: 3
+

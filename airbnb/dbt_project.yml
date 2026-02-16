@@ -25,4 +25,3 @@ clean-targets:         # directories to be removed by `dbt clean`
 vars:
   schema_source: RAW_CAMPAIGN_DATA
 
-
