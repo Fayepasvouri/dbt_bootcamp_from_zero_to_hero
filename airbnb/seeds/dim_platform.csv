@@ -1,0 +1,5 @@
+platform,channel,platform_type,is_programmatic,default_country,currency
+google_ads,Paid Media,Search,0,GB,GBP
+dv360,Paid Media,Display,1,GB,GBP
+facebook_ads,Social,Social,0,GB,GBP
+tiktok_ads,Social,Social,0,GB,GBP
