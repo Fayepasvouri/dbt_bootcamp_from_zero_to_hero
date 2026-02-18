@@ -19,7 +19,7 @@
 
 with facebook as (
     select
-        platform_id,
+        ad_id as platform_id,
         {{ facebook_platform_metadata() }},
         campaign_name,
         adset_name,
@@ -55,10 +55,10 @@ tiktok as (
         conversions, 
         spend, 
         revenue, 
-        calc_ctr as ctr_percent,
-        calc_cpc as cpc, 
-        calc_cpa as cpa,
-        calc_roas as roas
+        ctr_percent,
+        cpc, 
+        cpa,
+        roas
     from {{ ref('int_tiktok_ads') }}
 )
 
