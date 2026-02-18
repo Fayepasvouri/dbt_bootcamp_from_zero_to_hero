@@ -5,49 +5,61 @@ with source as (
     from {{ source('marketing_source', 'TIKTOK_ADS_RAW_DATA') }}
 ),
 
+fx_rates as (
+    select 
+        date,
+        currency,
+        rate_to_gbp
+    from {{ ref('dim_fx_rates') }}
+    where currency = 'CNY'
+),
+
 cleaned as (
     select
-        tiktok_ads_id,
-        ad_group,
-        campaign_name,
-        date::date as date,
-        country,
-        device,
-        gender,
-        placement,
-        coalesce(impressions::int, 0) as impressions,
-        coalesce(clicks::int, 0) as clicks,
-        coalesce(conversions::int, 0) as conversions,
-        coalesce(spend::float, 0) as spend,
-        coalesce(revenue::float, 0) as revenue,
-        coalesce(video_views::int, 0) as video_views,
+        s.tiktok_ads_id,
+        s.ad_group,
+        s.campaign_name,
+        s.date::date as date,
+        s.country,
+        s.device,
+        s.gender,
+        s.placement,
+        coalesce(s.impressions::int, 0) as impressions,
+        coalesce(s.clicks::int, 0) as clicks,
+        coalesce(s.conversions::int, 0) as conversions,
+        coalesce({{ safe_divide('s.spend', 'fx.rate_to_gbp', 's.spend') }}, 0)::float as spend_gbp,
+        coalesce({{ safe_divide('s.revenue', 'fx.rate_to_gbp', 's.revenue') }}, 0)::float as revenue_gbp,
+        coalesce(s.spend::float, 0) as spend,
+        coalesce(s.revenue::float, 0) as revenue,
+        coalesce(s.video_views::int, 0) as video_views,
 
-        -- derived metrics
-        case when impressions > 0 then clicks / impressions * 100 else null end as ctr_percent,
-        case when clicks > 0 then spend / clicks else null end as cpc,
-        case when conversions > 0 then spend / conversions else null end as cpa,
-        case when spend > 0 then revenue / spend else null end as roas,
-        case when impressions > 0 then video_views / impressions * 100 else null end as view_rate,
+        -- derived metrics using safe divide
+        {{ safe_divide('s.clicks', 's.impressions', 0) }} * 100 as ctr_percent,
+        {{ safe_divide('s.spend', 's.clicks', 0) }} as cpc,
+        {{ safe_divide('s.spend', 's.conversions', 0) }} as cpa,
+        {{ safe_divide('s.revenue', 's.spend', 0) }} as roas,
+        {{ safe_divide('s.video_views', 's.impressions', 0) }} * 100 as view_rate,
 
         -- data quality / audit flags
         case 
-            when tiktok_ads_id is null then 0
-            when impressions < 0 or clicks < 0 or conversions < 0 or spend < 0 or revenue < 0 then 0
+            when s.tiktok_ads_id is null then 0
+            when s.impressions < 0 or s.clicks < 0 or s.conversions < 0 or s.spend < 0 or s.revenue < 0 then 0
             else 1
         end as is_valid,
 
         case
-            when tiktok_ads_id is null then 'missing tiktok_ads_id'
-            when impressions < 0 then 'negative impressions'
-            when clicks < 0 then 'negative clicks'
-            when conversions < 0 then 'negative conversions'
-            when spend < 0 then 'negative spend'
-            when revenue < 0 then 'negative revenue'
+            when s.tiktok_ads_id is null then 'missing tiktok_ads_id'
+            when s.impressions < 0 then 'negative impressions'
+            when s.clicks < 0 then 'negative clicks'
+            when s.conversions < 0 then 'negative conversions'
+            when s.spend < 0 then 'negative spend'
+            when s.revenue < 0 then 'negative revenue'
             else null
         end as audit_notes,
 
         current_timestamp() as record_inserted_at
-    from source
+    from source s
+    left join fx_rates fx on s.date::date = fx.date and fx.currency = 'CNY'
 )
 
 select * from cleaned

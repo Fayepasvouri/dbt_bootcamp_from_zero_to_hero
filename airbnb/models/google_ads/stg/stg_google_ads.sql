@@ -5,51 +5,63 @@ with source as (
     from {{ source('marketing_source', 'GOOGLE_ADS_RAW_DATA') }}
 ),
 
+fx_rates as (
+    select 
+        date,
+        currency,
+        rate_to_gbp
+    from {{ ref('dim_fx_rates') }}
+    where currency = 'USD'
+),
+
 cleaned as (
     select
-        google_ads_id,
-        ad_group,
-        campaign_name,
-        network,
-        date::date as date,
-        country,
-        device,
-        coalesce(impressions::int, 0) as impressions,
-        coalesce(clicks::int, 0) as clicks,
-        coalesce(conversions::int, 0) as conversions,
-        coalesce(cost::float, 0) as spend,
-        coalesce(revenue::float, 0) as revenue,
-        coalesce(cpa::float, 0) as cpa,
-        coalesce(cpc::float, 0) as cpc,
-        coalesce(ctr_percent::float, 0) as ctr_percent,
-        coalesce(roas::float, 0) as roas,
+        s.google_ads_id,
+        s.ad_group,
+        s.campaign_name,
+        s.network,
+        s.date::date as date,
+        s.country,
+        s.device,
+        coalesce(s.impressions::int, 0) as impressions,
+        coalesce(s.clicks::int, 0) as clicks,
+        coalesce(s.conversions::int, 0) as conversions,
+        coalesce({{ safe_divide('s.cost', 'fx.rate_to_gbp', 's.cost') }}, 0)::float as spend_gbp,
+        coalesce({{ safe_divide('s.revenue', 'fx.rate_to_gbp', 's.revenue') }}, 0)::float as revenue_gbp,
+        coalesce(s.cost::float, 0) as spend,
+        coalesce(s.revenue::float, 0) as revenue,
+        coalesce(s.cpa::float, 0) as cpa,
+        coalesce(s.cpc::float, 0) as cpc,
+        coalesce(s.ctr_percent::float, 0) as ctr_percent,
+        coalesce(s.roas::float, 0) as roas,
 
-        -- derived metrics for auditing
-        case when impressions > 0 then clicks / impressions * 100 else null end as calc_ctr,
-        case when clicks > 0 then spend / clicks else null end as calc_cpc,
-        case when conversions > 0 then spend / conversions else null end as calc_cpa,
-        case when spend > 0 then revenue / spend else null end as calc_roas,
+        -- derived metrics using safe divide
+        {{ safe_divide('s.clicks', 's.impressions', 0) }} * 100 as calc_ctr,
+        {{ safe_divide('s.cost', 's.clicks', 0) }} as calc_cpc,
+        {{ safe_divide('s.cost', 's.conversions', 0) }} as calc_cpa,
+        {{ safe_divide('s.revenue', 's.cost', 0) }} as calc_roas,
 
         -- data quality flags
         case 
-            when google_ads_id is null then 0
-            when impressions < 0 or clicks < 0 or conversions < 0 or spend < 0 or revenue < 0 then 0
+            when s.google_ads_id is null then 0
+            when s.impressions < 0 or s.clicks < 0 or s.conversions < 0 or s.cost < 0 or s.revenue < 0 then 0
             else 1
         end as is_valid,
 
         case
-            when google_ads_id is null then 'missing google_ads_id'
-            when impressions < 0 then 'negative impressions'
-            when clicks < 0 then 'negative clicks'
-            when conversions < 0 then 'negative conversions'
-            when spend < 0 then 'negative spend'
-            when revenue < 0 then 'negative revenue'
+            when s.google_ads_id is null then 'missing google_ads_id'
+            when s.impressions < 0 then 'negative impressions'
+            when s.clicks < 0 then 'negative clicks'
+            when s.conversions < 0 then 'negative conversions'
+            when s.cost < 0 then 'negative spend'
+            when s.revenue < 0 then 'negative revenue'
             else null
         end as audit_notes,
 
         current_timestamp() as record_inserted_at
 
-    from source
+    from source s
+    left join fx_rates fx on s.date::date = fx.date and fx.currency = 'USD'
 )
 
 select * from cleaned

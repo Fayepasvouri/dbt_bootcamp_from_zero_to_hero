@@ -5,27 +5,39 @@ with source as (
     from {{ source('marketing_source', 'FACEBOOK_ADS_RAW_DATA') }}
 ),
 
+fx_rates as (
+    select 
+        date,
+        currency,
+        rate_to_gbp
+    from {{ ref('dim_fx_rates') }}
+    where currency = 'USD'
+),
+
 cleaned as (
     select
-        ad_id,
-        campaign_name,
-        adset_name,
-        ad_name,
-        date::date as date,
-        country,
-        device,
-        impressions::int as impressions,
-        clicks::int as clicks,
-        conversions::int as conversions,
-        spend::float as spend,
-        revenue::float as revenue,
+        s.ad_id,
+        s.campaign_name,
+        s.adset_name,
+        s.ad_name,
+        s.date::date as date,
+        s.country,
+        s.device,
+        s.impressions::int as impressions,
+        s.clicks::int as clicks,
+        s.conversions::int as conversions,
+        {{ safe_divide('s.spend', 'fx.rate_to_gbp', 's.spend') }}::float as spend_gbp,
+        {{ safe_divide('s.revenue', 'fx.rate_to_gbp', 's.revenue') }}::float as revenue_gbp,
+        s.spend::float as spend,
+        s.revenue::float as revenue,
 
-        -- derived metrics
-        case when impressions != 0 then clicks / impressions * 100 else null end as ctr_percent,
-        case when clicks != 0 then spend / clicks else null end as cpc,
-        case when conversions != 0 then spend / conversions else null end as cpa,
-        case when spend != 0 then revenue / spend else null end as roas
-    from source
+        -- derived metrics using safe divide
+        {{ safe_divide('s.clicks', 's.impressions', 0) }} * 100 as ctr_percent,
+        {{ safe_divide('s.spend', 's.clicks', 0) }} as cpc,
+        {{ safe_divide('s.spend', 's.conversions', 0) }} as cpa,
+        {{ safe_divide('s.revenue', 's.spend', 0) }} as roas
+    from source s
+    left join fx_rates fx on s.date::date = fx.date and fx.currency = 'USD'
 )
 
 select * from cleaned
