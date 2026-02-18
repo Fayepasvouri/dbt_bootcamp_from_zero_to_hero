@@ -1,0 +1,73 @@
+version: 2
+
+models:
+  - name: fct_social_ads
+    description: "Unified social ads fact table"
+
+    columns:
+
+      - name: platform_id
+        description: "Primary identifier per platform row"
+        tests:
+          - not_null
+          - unique
+
+      - name: platform
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['facebook', 'tiktok']
+
+      - name: date
+        tests:
+          - not_null
+
+      - name: country
+        tests:
+          - not_null
+
+      - name: impressions
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+
+      - name: clicks
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+
+      - name: conversions
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+
+      - name: spend
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+
+      - name: revenue
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
+
+      - name: ctr_percent
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "<= 100"
+
+      - name: roas
+        tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
