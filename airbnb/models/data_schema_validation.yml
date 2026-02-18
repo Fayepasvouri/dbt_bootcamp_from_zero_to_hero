@@ -2,17 +2,21 @@ version: 2
 
 models:
   - name: fct_social_ads
-    description: "Unified social ads fact table"
-
+    description: "Unified social ads fact table combining data from multiple platforms"
     columns:
-
       - name: platform_id
         description: "Primary identifier per platform row"
+        data_type: integer
         tests:
           - not_null
           - unique
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "> 0"
 
       - name: platform
+        description: "The advertising platform name"
+        data_type: string
         tests:
           - not_null
           - accepted_values:
@@ -20,14 +24,23 @@ models:
                 values: ['facebook', 'tiktok']
 
       - name: date
+        description: "The date of the advertising data"
+        data_type: date
         tests:
           - not_null
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "<= CURRENT_DATE"
 
       - name: country
+        description: "The country where the ads were targeted"
+        data_type: string
         tests:
           - not_null
 
       - name: impressions
+        description: "Number of times the ad was shown"
+        data_type: integer
         tests:
           - not_null
           - dbt_utils.expression_is_true:
@@ -35,6 +48,8 @@ models:
                 expression: ">= 0"
 
       - name: clicks
+        description: "Number of clicks on the ad"
+        data_type: integer
         tests:
           - not_null
           - dbt_utils.expression_is_true:
@@ -42,12 +57,16 @@ models:
                 expression: ">= 0"
 
       - name: conversions
+        description: "Number of conversions from the ad"
+        data_type: integer
         tests:
           - dbt_utils.expression_is_true:
               arguments:
                 expression: ">= 0"
 
       - name: spend
+        description: "Amount spent on the ad in the platform's currency"
+        data_type: float
         tests:
           - not_null
           - dbt_utils.expression_is_true:
@@ -55,18 +74,27 @@ models:
                 expression: ">= 0"
 
       - name: revenue
+        description: "Revenue generated from the ad"
+        data_type: float
         tests:
           - dbt_utils.expression_is_true:
               arguments:
                 expression: ">= 0"
 
       - name: ctr_percent
+        description: "Click-through rate as a percentage"
+        data_type: float
         tests:
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: ">= 0"
           - dbt_utils.expression_is_true:
               arguments:
                 expression: "<= 100"
 
       - name: roas
+        description: "Return on ad spend"
+        data_type: float
         tests:
           - dbt_utils.expression_is_true:
               arguments:
